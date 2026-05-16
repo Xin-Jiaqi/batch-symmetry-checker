@@ -26,14 +26,6 @@ Email: jiaqixin2@bjtu.edu.cn
 
 脚本会对每个结构文件扫描多个 `symprec` tolerance，并将结果输出为 Excel 表格。
 
-## 文件结构
-
-推荐仓库结构如下：
-
-    batch-symmetry-checker/
-    ├── README.md
-    └── batch_symmetry_check.py
-
 ## 安装依赖
 
 推荐使用 `conda` 安装：
