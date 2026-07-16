@@ -73,22 +73,24 @@ metric_vs_symmetry_check:
 
 注意：
     对每个结构文件，会输出 n 行，对应 n 个 symprec。
-    其中 file_name、formula、num_sites、crystal_system、lattice_parameters、
-    lattice_relation、metric_crystal_system、metric_vs_symmetry_check
-    这些结构固定信息只在该体系第一行填写。
-    后续 n-1 行留空。
-    symprec、space_group_symbol、space_group_number、point_group_HM、
-    point_group_Schoenflies 会在每一行填写，因为它们可能随 tolerance 变化。
+    每一行都保留完整字段，可以独立排序、筛选或被代码读取。
+    crystal_system 和 metric_vs_symmetry_check 等字段也可能随
+    tolerance 变化，因此不会在后续行留空。
 """
 
 
 from pathlib import Path
 import argparse
+import math
+import sys
 import traceback
 
 import pandas as pd
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+
+__version__ = "0.1.0"
 
 
 # ============================================================
@@ -325,6 +327,29 @@ def nearly_equal_angle(x, target, abs_tol=LATTICE_ANGLE_ABS_TOL):
     return abs(x - target) <= abs_tol
 
 
+def describe_length_relation(ab: bool, bc: bool, ac: bool) -> str:
+    """Return only pairwise length relations that were actually checked."""
+
+    if ab and bc and ac:
+        return "a=b=c"
+    if ab and (not bc) and (not ac):
+        return "a=b≠c"
+    if ac and (not ab) and (not bc):
+        return "a=c≠b"
+    if bc and (not ab) and (not ac):
+        return "b=c≠a"
+    if (not ab) and (not bc) and (not ac):
+        return "a≠b, b≠c, a≠c"
+
+    # Near-equality with a tolerance is not perfectly transitive.  In those
+    # edge cases, state every checked pair instead of making a shorthand claim.
+    return (
+        f"a{'=' if ab else '≠'}b, "
+        f"b{'=' if bc else '≠'}c, "
+        f"a{'=' if ac else '≠'}c"
+    )
+
+
 def get_lattice_metric_info(structure: Structure):
     """
     直接从输入结构的晶格参数判断 a,b,c,α,β,γ 的关系。
@@ -367,6 +392,7 @@ def get_lattice_metric_info(structure: Structure):
 
     all_90 = alpha_90 and beta_90 and gamma_90
     all_lengths_equal = ab and bc and ac
+    length_relation = describe_length_relation(ab=ab, bc=bc, ac=ac)
 
     lattice_parameters = (
         f"a={a:.6f} Å, b={b:.6f} Å, c={c:.6f} Å; "
@@ -386,47 +412,64 @@ def get_lattice_metric_info(structure: Structure):
     # orthorhombic
     elif (not ab) and (not bc) and (not ac) and all_90:
         metric_crystal_system = "orthorhombic"
-        lattice_relation = "a≠b≠c, α=β=γ=90°"
+        lattice_relation = f"{length_relation}, α=β=γ=90°"
 
-    # hexagonal setting
-    elif ab and (not ac) and (not bc) and alpha_90 and beta_90 and gamma_120:
+    # Conventional hexagonal bases commonly use either γ=120° or γ=60°.
+    elif (
+        ab
+        and (not ac)
+        and (not bc)
+        and alpha_90
+        and beta_90
+        and (gamma_120 or nearly_equal_angle(gamma, 60.0))
+    ):
         metric_crystal_system = "hexagonal"
-        lattice_relation = "a=b≠c, α=β=90°, γ=120°"
+        gamma_target = 120 if gamma_120 else 60
+        lattice_relation = f"a=b≠c, α=β=90°, γ={gamma_target}°"
 
     # rhombohedral metric
-    elif all_lengths_equal and nearly_equal_angle(alpha, beta) and nearly_equal_angle(beta, gamma) and (not all_90):
+    elif (
+        all_lengths_equal
+        and nearly_equal_angle(alpha, beta)
+        and nearly_equal_angle(beta, gamma)
+        and nearly_equal_angle(alpha, gamma)
+        and (not all_90)
+    ):
         metric_crystal_system = "rhombohedral"
-        lattice_relation = "a=b=c, α=β=γ≠90°"
+        lattice_relation = (
+            "a=b=c, α≈β≈γ; "
+            f"α={alpha:.4f}°, β={beta:.4f}°, γ={gamma:.4f}°"
+        )
 
     # monoclinic standard setting, usually unique axis b
     elif alpha_90 and gamma_90 and (not beta_90):
         metric_crystal_system = "monoclinic"
-        lattice_relation = "a≠b≠c, α=γ=90°, β≠90°"
+        lattice_relation = f"{length_relation}, α=γ=90°, β={beta:.4f}°"
 
     # monoclinic non-standard settings
     elif beta_90 and gamma_90 and (not alpha_90):
         metric_crystal_system = "monoclinic"
-        lattice_relation = "a≠b≠c, β=γ=90°, α≠90°"
+        lattice_relation = f"{length_relation}, β=γ=90°, α={alpha:.4f}°"
 
     elif alpha_90 and beta_90 and (not gamma_90):
         metric_crystal_system = "monoclinic"
-        lattice_relation = "a≠b≠c, α=β=90°, γ≠90°"
+        lattice_relation = f"{length_relation}, α=β=90°, γ={gamma:.4f}°"
 
     # 如果长度关系或角度关系存在部分匹配，但不符合标准晶系，标记为 ambiguous
     elif ab or bc or ac or alpha_90 or beta_90 or gamma_90 or alpha_120 or beta_120 or gamma_120:
         metric_crystal_system = "ambiguous"
         lattice_relation = (
-            f"partial relation: "
-            f"a{'=' if ab else '≠'}b, "
-            f"b{'=' if bc else '≠'}c, "
-            f"a{'=' if ac else '≠'}c; "
+            f"partial relation: {length_relation}; "
             f"α={alpha:.4f}°, β={beta:.4f}°, γ={gamma:.4f}°"
         )
 
     # triclinic general case
     else:
         metric_crystal_system = "triclinic"
-        lattice_relation = "a≠b≠c, α≠β≠γ, none of α,β,γ constrained to 90° or 120°"
+        lattice_relation = (
+            f"{length_relation}; "
+            f"α={alpha:.4f}°, β={beta:.4f}°, γ={gamma:.4f}°"
+        )
 
     return lattice_parameters, lattice_relation, metric_crystal_system
 
@@ -457,7 +500,12 @@ def compare_metric_and_symmetry_crystal_system(metric_crystal_system: str, symme
     return "inconsistent"
 
 
-def analyze_one_structure(file_path: Path, symprec: float, angle_tolerance: float):
+def analyze_one_structure(
+    file_path: Path,
+    symprec: float,
+    angle_tolerance: float,
+    display_path: str | None = None,
+):
     """
     对单个结构、单个 symprec 做对称性分析。
     """
@@ -492,7 +540,7 @@ def analyze_one_structure(file_path: Path, symprec: float, angle_tolerance: floa
     )
 
     return {
-        "file_name": file_path.name,
+        "file_name": display_path or file_path.name,
         "formula": formula,
         "num_sites": len(structure),
 
@@ -514,48 +562,35 @@ def analyze_one_structure(file_path: Path, symprec: float, angle_tolerance: floa
 
 def blank_repeated_static_fields(rows_for_one_file):
     """
-    对同一个结构文件的多行结果进行处理。
+    保留旧函数名以兼容已有调用，但不再清空重复字段。
 
-    保留第一行的结构固定信息。
-    后续 tolerance 行中，将这些固定信息置空。
-
-    这样 Excel 中每个体系的 n 行更清晰：
-    第一行写材料信息和晶格关系，
-    后续行只写不同 tolerance 下可能变化的空间群/点群。
+    每个 tolerance 行都必须是独立、完整的机器可读记录。特别是
+    crystal_system 和 metric_vs_symmetry_check 会随 symprec 变化，
+    不能当作静态字段。
     """
 
-    if len(rows_for_one_file) <= 1:
-        return rows_for_one_file
-
-    static_columns = [
-        "file_name",
-        "formula",
-        "num_sites",
-        "crystal_system",
-        "lattice_parameters",
-        "lattice_relation",
-        "metric_crystal_system",
-        "metric_vs_symmetry_check",
-    ]
-
-    processed_rows = []
-
-    for i, row in enumerate(rows_for_one_file):
-        row_copy = dict(row)
-
-        if i > 0:
-            for col in static_columns:
-                row_copy[col] = ""
-
-        processed_rows.append(row_copy)
-
-    return processed_rows
+    return [dict(row) for row in rows_for_one_file]
 
 
-def main():
+def validate_symprec_list(values: list[float]) -> None:
+    """Reject values that spglib cannot interpret as a positive tolerance."""
+
+    if not values:
+        raise ValueError("At least one symprec tolerance is required.")
+    invalid = [value for value in values if not math.isfinite(value) or value <= 0]
+    if invalid:
+        raise ValueError(
+            "Every symprec tolerance must be finite and greater than zero. "
+            f"Invalid values: {invalid}"
+        )
+
+
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Batch symmetry check for CIF/POSCAR/CONTCAR/.vasp using pymatgen + spglib."
     )
+
+    parser.add_argument("--version", action="version", version=__version__)
 
     parser.add_argument(
         "--input",
@@ -592,7 +627,7 @@ def main():
         help="Recursively search subfolders.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     input_dir = Path(args.input).resolve()
 
@@ -608,11 +643,27 @@ def main():
         symprec_list = get_symprec_list()
         tolerance_mode_used = TOLERANCE_MODE
 
+    try:
+        validate_symprec_list(symprec_list)
+    except ValueError as error:
+        print(f"Invalid tolerance configuration: {error}", file=sys.stderr)
+        return 2
+
     angle_tolerance = args.angle_tolerance
+    if not math.isfinite(angle_tolerance):
+        print(
+            "Invalid angle tolerance: the value must be finite.",
+            file=sys.stderr,
+        )
+        return 2
     recursive_search = RECURSIVE_SEARCH or args.recursive
 
     if not input_dir.exists():
-        raise FileNotFoundError(f"Input folder does not exist: {input_dir}")
+        print(f"Input folder does not exist: {input_dir}", file=sys.stderr)
+        return 2
+    if not input_dir.is_dir():
+        print(f"Input path is not a directory: {input_dir}", file=sys.stderr)
+        return 2
 
     structure_files = find_structure_files(
         input_dir=input_dir,
@@ -620,8 +671,11 @@ def main():
     )
 
     if len(structure_files) == 0:
-        print(f"No CIF/POSCAR/CONTCAR/.vasp files found in: {input_dir}")
-        return
+        print(
+            f"No CIF/POSCAR/CONTCAR/.vasp files found in: {input_dir}",
+            file=sys.stderr,
+        )
+        return 1
 
     print("=" * 80)
     print("Batch symmetry check")
@@ -641,7 +695,8 @@ def main():
     failed_files = []
 
     for file_path in structure_files:
-        print(f"\nProcessing: {file_path.name}")
+        relative_path = file_path.relative_to(input_dir).as_posix()
+        print(f"\nProcessing: {relative_path}")
 
         rows_for_one_file = []
 
@@ -651,6 +706,7 @@ def main():
                     file_path=file_path,
                     symprec=symprec,
                     angle_tolerance=angle_tolerance,
+                    display_path=relative_path,
                 )
 
                 print(
@@ -668,15 +724,15 @@ def main():
                 rows_for_one_file.append(row)
 
             except Exception as e:
-                failed_files.append((file_path.name, symprec, str(e)))
+                failed_files.append((relative_path, symprec, str(e)))
                 print(f"  symprec={symprec:<8g} FAILED: {e}")
                 traceback.print_exc()
 
         rows.extend(blank_repeated_static_fields(rows_for_one_file))
 
     if len(rows) == 0:
-        print("\nNo valid symmetry results were obtained.")
-        return
+        print("\nNo valid symmetry results were obtained.", file=sys.stderr)
+        return 1
 
     df = pd.DataFrame(rows)
 
@@ -724,12 +780,13 @@ def main():
     print(f"Saved to: {output_path}")
 
     if failed_files:
-        print("\nSome files failed and were not written to Excel:")
+        print("\nSome file/tolerance combinations failed and are absent from Excel:")
         for fname, symprec, errmsg in failed_files:
             print(f"  {fname}, symprec={symprec}: {errmsg}")
 
     print("=" * 80)
+    return 1 if failed_files else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
