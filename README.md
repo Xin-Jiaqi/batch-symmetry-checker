@@ -1,6 +1,3 @@
-# batch_symmetry_checker
-A lightweight Python script for batch symmetry analysis of crystal structure files using `pymatgen` and `spglib`.
-
 # Batch Symmetry Checker
 
 A lightweight Python script for batch symmetry analysis of crystal structure files using `pymatgen` and `spglib`.
@@ -36,11 +33,19 @@ Email: jiaqixin2@bjtu.edu.cn
 
     pip install pymatgen spglib pandas openpyxl
 
+如果是从本仓库开发或运行，可以安装当前项目：
+
+    python -m pip install -e .
+
+安装后也可以使用命令行入口：
+
+    batch-symmetry-checker --input "./structures" --recursive
+
 ## 使用方法
 
-将脚本 `batch_symmetry_check.py` 放在结构文件所在文件夹中，然后直接运行：
+将脚本 `batch_symmetry_checker.py` 放在结构文件所在文件夹中，然后直接运行：
 
-    python batch_symmetry_check.py
+    python batch_symmetry_checker.py
 
 默认情况下，脚本会读取当前文件夹中的 `.cif`、`.vasp`、`POSCAR`、`CONTCAR` 文件，并输出：
 
@@ -48,21 +53,21 @@ Email: jiaqixin2@bjtu.edu.cn
 
 也可以手动指定输入文件夹：
 
-    python batch_symmetry_check.py --input "./structures"
+    python batch_symmetry_checker.py --input "./structures"
 
 也可以自定义 tolerance：
 
-    python batch_symmetry_check.py --tolerances 1e-4 1e-3 1e-2 5e-2 1e-1
+    python batch_symmetry_checker.py --tolerances 1e-4 1e-3 1e-2 5e-2 1e-1
 
 递归搜索子文件夹：
 
-    python batch_symmetry_check.py --recursive
+    python batch_symmetry_checker.py --recursive
 
 ## Excel 中包含以下列
 
 | 列名 | 含义 |
 |---|---|
-| `file_name` | 输入结构文件名，例如 `POSCAR`、`CONTCAR`、`xxx.vasp`、`xxx.cif` |
+| `file_name` | 输入结构的相对路径；非递归时通常就是文件名，递归时例如 `sample/POSCAR` |
 | `formula` | 从结构文件读取并约分后的化学式，例如 `SnP2S6`、`MoS2`、`BiTeI` |
 | `num_sites` | 输入结构中的原子 site 数，也就是结构文件中显式写出的原子位点数量 |
 | `symprec` | spglib / pymatgen 做空间群识别时使用的原子位置容差，单位通常可按 Å 理解 |
@@ -76,7 +81,9 @@ Email: jiaqixin2@bjtu.edu.cn
 | `metric_crystal_system` | 仅根据晶格常数和角度关系判断得到的晶系，不使用原子坐标对称性 |
 | `metric_vs_symmetry_check` | 比较 `crystal_system` 和 `metric_crystal_system` 是否一致或兼容 |
 
-对于每个结构文件，脚本会输出多行，对应不同的 `symprec`。其中结构固定信息只在该体系第一行填写，后续 tolerance 行留空；随 tolerance 变化的空间群、点群信息每一行都会填写。
+对于每个结构文件，脚本会输出多行，对应不同的 `symprec`。每行都保留完整的文件、材料、晶系和晶格字段，因此可以独立排序、筛选或由程序读取。
+
+如果一批文件中只有部分结构或 tolerance 失败，脚本会保留已成功的 Excel 行，同时以非零状态退出，避免自动流水线将不完整结果当作完全成功。
 
 ## Tolerance 说明
 
@@ -213,6 +220,14 @@ Email: jiaqixin2@bjtu.edu.cn
 - 比较不同 tolerance 下结构对称性是否稳定
 - 检查 DFT relaxed 结构是否偏离理想高对称结构
 - 快速替代 Materials Studio 中逐个手动 `Find Symmetry` 的流程
+
+## 测试
+
+仓库内的回归测试覆盖完整 Excel 行、递归相对路径、60°/120° 六角晶格和错误退出码：
+
+    python -m unittest discover -v
+
+项目当前基线版本为 `0.1.0`。GitHub Actions 会在 Python 3.10 和 3.12 上运行同一套测试。
 
 ## License
 
