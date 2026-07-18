@@ -107,6 +107,8 @@ python -m twine check dist/*
 
 CI runs the tests on Python 3.10 and 3.12, exercises the CLI, builds wheel and source distributions, and validates their metadata.
 
+For research use, cite the exact version using [`CITATION.cff`](CITATION.cff). A DOI or preferred paper citation will be added only when a corresponding release or publication exists.
+
 ## Scope and roadmap
 
 Implemented: deterministic file discovery, one-time parsing, multi-tolerance symmetry analysis, 32 crystallographic point-group labels, structured JSON/CSV/Excel reports, source hashing, typed API, tests, packaging, and CI.
