@@ -29,7 +29,7 @@ Excel output is optional:
 python -m pip install -e '.[excel]'
 ```
 
-No open-source license has yet been granted. See `LICENSE_STATUS.md` before reuse or redistribution.
+The project is available under the [BSD 3-Clause License](LICENSE).
 
 ## Command line
 
@@ -117,8 +117,8 @@ Implemented: deterministic file discovery, one-time parsing, multi-tolerance sym
 
 Not implemented: magnetic symmetry, layer-group classification, automatic structural repair, canonical structure identity, or direct `materials-structure-core`/`group-theory-operations-toolkit` imports. Those integrations remain gated on stable contracts in the sibling projects. See [ROADMAP.md](ROADMAP.md).
 
-## Author and use status
+## Author and license
 
 Jiaqi Xin (辛嘉琪), Beijing Jiaotong University. Contact: jiaqixin2@bjtu.edu.cn.
 
-Copyright is retained by the author. Public visibility does not grant permission to copy, modify, redistribute, or use the code commercially; see [LICENSE_STATUS.md](LICENSE_STATUS.md).
+Copyright is retained by the author; reuse and redistribution are permitted under the [BSD 3-Clause License](LICENSE).

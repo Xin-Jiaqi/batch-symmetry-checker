@@ -14,7 +14,7 @@
 - Validate output equivalence across supported pymatgen/spglib version windows.
 - Add a tolerance-stability summary derived from, but separate from, raw records.
 - Add performance fixtures for thousands of small structures.
-- Decide and document a license before community distribution.
+- Publish repository-authored code and documentation under BSD-3-Clause.
 
 ## Release 1.0 gate
 
