@@ -1,5 +1,7 @@
 # Batch Symmetry Checker
 
+[![tests](https://github.com/Xin-Jiaqi/batch-symmetry-checker/actions/workflows/tests.yml/badge.svg)](https://github.com/Xin-Jiaqi/batch-symmetry-checker/actions/workflows/tests.yml)
+
 Batch Symmetry Checker creates versioned, machine-readable symmetry reports for periodic crystal structures. It reads CIF, POSCAR, CONTCAR, and `.vasp` files with pymatgen, evaluates each structure over one or more spglib tolerances, and records space group, point group, crystal system, lattice metric, source hash, and structured failures.
 
 The project is an **alpha research tool**. It supports reproducible screening and quality control; it does not replace crystallographic validation for publication. In particular, a three-dimensional space-group result for a slab with vacuum must be interpreted in its physical context.
