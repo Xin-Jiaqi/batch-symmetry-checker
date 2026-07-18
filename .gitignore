@@ -6,3 +6,6 @@ build/
 dist/
 *.egg-info/
 symmetry_check_results.xlsx
+symmetry_report.json
+*.errors.csv
+.coverage

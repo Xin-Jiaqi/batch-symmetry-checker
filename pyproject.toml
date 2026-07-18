@@ -1,22 +1,50 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "batch-symmetry-checker"
-version = "0.1.0"
-description = "Batch crystal-structure symmetry analysis with pymatgen and spglib"
+version = "0.2.0"
+description = "Versioned batch symmetry reports for periodic crystal structures"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [{name = "Jiaqi Xin"}]
+keywords = ["crystallography", "materials-science", "spglib", "symmetry"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Typing :: Typed",
+]
 dependencies = [
-  "openpyxl>=3.1",
-  "pandas>=2.0",
   "pymatgen>=2024.1",
   "spglib>=2.0",
 ]
 
+[project.optional-dependencies]
+excel = ["openpyxl>=3.1", "pandas>=2.0"]
+test = ["build>=1.2", "openpyxl>=3.1", "packaging>=25", "pandas>=2.0", "pytest>=8", "ruff>=0.8", "twine>=5"]
+
 [project.scripts]
-batch-symmetry-checker = "batch_symmetry_checker:main"
+batch-symmetry-checker = "batch_symmetry_checker.cli:main"
 
 [tool.setuptools]
-py-modules = ["batch_symmetry_checker"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
