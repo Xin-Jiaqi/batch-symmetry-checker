@@ -49,6 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--recursive", action="store_true")
     parser.add_argument(
+        "--include-absolute-root",
+        action="store_true",
+        help="Include the resolved input directory in report metadata (off by default)",
+    )
+    parser.add_argument(
         "--log-level", choices=("DEBUG", "INFO", "WARNING", "ERROR"), default="INFO"
     )
     parser.add_argument("--quiet", action="store_true", help="Only print errors")
@@ -69,7 +74,13 @@ def main(argv: list[str] | None = None) -> int:
         recursive=args.recursive,
     )
     try:
-        report = analyze_directory(config, producer_version=__version__)
+        report = analyze_directory(
+            config,
+            producer_version=__version__,
+            report_input_root=(
+                str(config.input_dir.resolve()) if args.include_absolute_root else "."
+            ),
+        )
         created = write_report(report, Path(args.output), args.format, overwrite=args.force)
     except (ValueError, RuntimeError, OSError) as exc:
         LOGGER.error("%s", exc)
