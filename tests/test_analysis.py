@@ -123,6 +123,17 @@ def test_directory_parses_each_structure_once_for_many_tolerances(tmp_path: Path
     assert len(report.records) == 3
     assert report.status == "complete"
     assert len({record.source_sha256 for record in report.records}) == 1
+    assert report.input_root == "."
+
+
+def test_report_root_is_only_included_by_explicit_opt_in(tmp_path: Path) -> None:
+    write_poscar(tmp_path / "POSCAR")
+    report = analyze_directory(
+        AnalysisConfig(tmp_path, tolerances=(1e-3,)),
+        producer_version="test",
+        report_input_root=str(tmp_path.resolve()),
+    )
+    assert report.input_root == str(tmp_path.resolve())
 
 
 def test_parse_failure_is_one_file_level_error_not_one_per_tolerance(tmp_path: Path) -> None:
@@ -134,6 +145,22 @@ def test_parse_failure_is_one_file_level_error_not_one_per_tolerance(tmp_path: P
     assert len(report.errors) == 1
     assert report.errors[0].code == "structure_parse_error"
     assert report.errors[0].symprec_angstrom is None
+
+
+class PathLeakingLoader:
+    def load(self, path: Path) -> Structure:
+        raise ValueError(f"cannot parse {path.resolve()}")
+
+
+def test_parse_errors_redact_resolved_input_root(tmp_path: Path) -> None:
+    (tmp_path / "POSCAR_bad").write_text("broken\n", encoding="utf-8")
+    report = analyze_directory(
+        AnalysisConfig(tmp_path, tolerances=(1e-3,)),
+        loader=PathLeakingLoader(),
+        producer_version="test",
+    )
+    assert str(tmp_path.resolve()) not in report.errors[0].message
+    assert "<input_root>" in report.errors[0].message
 
 
 def test_custom_loader_source_change_is_rejected_as_a_provenance_failure(tmp_path: Path) -> None:

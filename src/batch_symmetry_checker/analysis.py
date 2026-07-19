@@ -337,16 +337,17 @@ def analyze_directory(
     loader: StructureLoader | None = None,
     point_group_resolver: PointGroupResolver | None = None,
     producer_version: str = "unknown",
+    report_input_root: str = ".",
 ) -> SymmetryReport:
     """Analyze a directory deterministically, parsing each source exactly once."""
 
     config.validate()
     root = config.input_dir.resolve()
     if not root.exists() or not root.is_dir():
-        raise ValueError(f"input directory does not exist or is not a directory: {root}")
+        raise ValueError("input directory does not exist or is not a directory")
     files = find_structure_files(root, config.recursive)
     if not files:
-        raise ValueError(f"no supported structure files found in: {root}")
+        raise ValueError("no supported structure files found in input directory")
     loader = loader or PymatgenStructureLoader()
     records: list[SymmetryRecord] = []
     errors: list[AnalysisError] = []
@@ -363,7 +364,8 @@ def analyze_directory(
                 if sha256_file(path) != source_hash:
                     raise RuntimeError("source changed while it was being parsed")
         except Exception as exc:
-            errors.append(AnalysisError(relative, "structure_parse_error", str(exc)))
+            message = str(exc).replace(str(root), "<input_root>")
+            errors.append(AnalysisError(relative, "structure_parse_error", message))
             continue
         for tolerance in config.tolerances:
             try:
@@ -380,13 +382,14 @@ def analyze_directory(
                     )
                 )
             except Exception as exc:
+                message = str(exc).replace(str(root), "<input_root>")
                 errors.append(
-                    AnalysisError(relative, "symmetry_analysis_error", str(exc), tolerance)
+                    AnalysisError(relative, "symmetry_analysis_error", message, tolerance)
                 )
     return SymmetryReport.from_parts(
         records,
         errors,
-        input_root=str(root),
+        input_root=report_input_root,
         recursive=config.recursive,
         tolerances_angstrom=config.tolerances,
         angle_tolerance_degree=config.angle_tolerance,

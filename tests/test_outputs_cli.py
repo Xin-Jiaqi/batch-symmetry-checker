@@ -30,6 +30,20 @@ def test_json_report_has_versioned_complete_contract(tmp_path: Path) -> None:
     assert payload["summary"] == {"record_count": 1, "error_count": 0, "source_count": 1}
     assert payload["records"][0]["source_sha256"]
     assert payload["errors"] == []
+    assert payload["configuration"]["input_root"] == "."
+
+
+def test_cli_absolute_root_requires_explicit_opt_in(tmp_path: Path) -> None:
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    write_poscar(inputs / "POSCAR")
+    output = tmp_path / "report.json"
+    assert main([
+        "--input", str(inputs), "--output", str(output), "--tolerances", "1e-3",
+        "--include-absolute-root", "--quiet",
+    ]) == EXIT_SUCCESS
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["configuration"]["input_root"] == str(inputs.resolve())
 
 
 def test_csv_and_error_sidecar_share_machine_readable_fields(tmp_path: Path) -> None:

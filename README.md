@@ -12,6 +12,7 @@ The project is an **alpha research tool**. It supports reproducible screening an
 - JSON is the default output; CSV and Excel are also supported.
 - Report schema `1.0.0` separates successful records from file- and tolerance-level errors.
 - Source SHA-256, dependency versions, units, and run configuration are recorded.
+- Reports use relative source paths and a logical input root by default, avoiding accidental disclosure of local usernames and project directories.
 - The Python API accepts loader and point-group resolver adapters without depending on unfinished sibling repositories.
 - Partial batches keep valid results and return a nonzero exit status.
 
@@ -45,6 +46,8 @@ batch-symmetry-checker \
   --output results.csv \
   --tolerances 1e-4 1e-3 1e-2 5e-2
 ```
+
+The report records `configuration.input_root` as `"."` by default. Use `--include-absolute-root` only for a controlled internal report that needs the resolved local directory.
 
 Excel remains available for interactive inspection:
 
@@ -107,7 +110,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-CI runs the tests on Python 3.10 and 3.12, exercises the CLI, builds wheel and source distributions, and validates their metadata.
+CI runs the tests on Python 3.10 and the latest stable Python 3.14, exercises the CLI, builds wheel and source distributions, and validates their metadata.
 
 For research use, cite the exact version using [`CITATION.cff`](CITATION.cff). A DOI or preferred paper citation will be added only when a corresponding release or publication exists.
 
