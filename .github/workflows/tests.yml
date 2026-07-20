@@ -32,7 +32,7 @@ jobs:
           MATERIALS_STRUCTURE_BENCHMARK_ROOT: ${{ github.workspace }}/materials-structure-benchmark
         run: python -m pytest
       - name: Lint
-        run: python -m ruff check .
+        run: python -m ruff check src tests batch_symmetry_checker.py
       - name: CLI smoke test
         run: batch-symmetry-checker --version
       - name: Build distributions
