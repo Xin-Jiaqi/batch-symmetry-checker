@@ -112,6 +112,14 @@ python -m twine check dist/*
 
 CI runs the tests on Python 3.10 and the latest stable Python 3.14, exercises the CLI, builds wheel and source distributions, and validates their metadata.
 
+CI also consumes the versioned `batch-smoke-v1` split from
+[`materials-structure-benchmark`](https://github.com/Xin-Jiaqi/materials-structure-benchmark).
+It verifies 12 pinned, redistributable structures (six CC BY 4.0 monolayers and
+six CC0 bulks) at four tolerances, producing 48 deterministic records whose source
+hashes are bound to the benchmark manifest. This is a parsing, provenance, and
+reporting contract; it does not establish stability, synthesizability,
+ferroelectricity, layer-group ground truth, or any other material property.
+
 For research use, cite the exact version using [`CITATION.cff`](CITATION.cff). A DOI or preferred paper citation will be added only when a corresponding release or publication exists.
 
 ## Scope and roadmap
