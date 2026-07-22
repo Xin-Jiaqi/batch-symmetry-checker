@@ -1,9 +1,15 @@
 """Reliable batch symmetry reports for periodic crystal structures."""
 
+from .adapters import (
+    MaterialsStructureCoreLoader,
+    MaterialsStructureCoreUnavailableError,
+    PymatgenStructureLoader,
+    StructureLoader,
+    structure_record_to_pymatgen,
+)
 from .analysis import (
     POINT_GROUP_HM_TO_SCHOENFLIES,
     AnalysisConfig,
-    PymatgenStructureLoader,
     analyze_directory,
     analyze_one_structure,
     analyze_structure,
@@ -26,12 +32,15 @@ POINT_GROUP_HM_TO_SCHONFLIES = POINT_GROUP_HM_TO_SCHOENFLIES
 __all__ = [
     "AnalysisConfig",
     "AnalysisError",
+    "MaterialsStructureCoreLoader",
+    "MaterialsStructureCoreUnavailableError",
     "POINT_GROUP_HM_TO_SCHOENFLIES",
     "POINT_GROUP_HM_TO_SCHONFLIES",
     "PymatgenStructureLoader",
     "REPORT_SCHEMA_VERSION",
     "SymmetryRecord",
     "SymmetryReport",
+    "StructureLoader",
     "analyze_directory",
     "analyze_one_structure",
     "analyze_structure",
@@ -39,5 +48,6 @@ __all__ = [
     "find_structure_files",
     "get_lattice_metric_info",
     "resolve_schoenflies",
+    "structure_record_to_pymatgen",
     "validate_symprec_list",
 ]

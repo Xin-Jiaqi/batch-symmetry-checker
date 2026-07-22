@@ -8,11 +8,11 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Protocol
 
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
+from .adapters import PymatgenStructureLoader, StructureLoader
 from .models import AnalysisError, SymmetryRecord, SymmetryReport
 
 DEFAULT_TOLERANCES = (1e-4, 1e-3, 1e-2, 5e-2, 1e-1)
@@ -57,25 +57,6 @@ POINT_GROUP_HM_TO_SCHOENFLIES = {
     "-43m": "Td",
     "m-3m": "Oh",
 }
-
-
-class StructureLoader(Protocol):
-    """Adapter boundary for future materials-structure-core integration."""
-
-    def load(self, path: Path) -> Structure: ...
-
-
-class PymatgenStructureLoader:
-    """Default loader for CIF, POSCAR, CONTCAR, and .vasp files."""
-
-    def load(self, path: Path) -> Structure:
-        return Structure.from_file(str(path))
-
-    def load_bytes(self, payload: bytes, path: Path) -> Structure:
-        """Parse the same immutable byte snapshot used for provenance."""
-
-        format_name = "cif" if path.suffix.lower() == ".cif" else "poscar"
-        return Structure.from_str(payload.decode("utf-8"), fmt=format_name)
 
 
 PointGroupResolver = Callable[[str], str | None]

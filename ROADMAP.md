@@ -11,6 +11,7 @@
 ## Release 0.3 candidate
 
 - Add golden CIF/POSCAR fixtures whose redistribution rights are documented.
+- [x] Add and continuously test the `materials-structure-core>=0.0.2` loader adapter.
 - Validate output equivalence across supported pymatgen/spglib version windows.
 - Add a tolerance-stability summary derived from, but separate from, raw records.
 - Add performance fixtures for thousands of small structures.
@@ -26,7 +27,7 @@
 
 ## Gated ecosystem integrations
 
-- `materials-structure-core`: wait for its stable I/O and provenance release, then implement a loader adapter and equivalence tests.
+- `materials-structure-core`: adapter and pymatgen-equivalence tests are implemented; add input-loader metadata to a future report-schema minor release before making it the CLI default.
 - `group-theory-operations-toolkit`: wait for its 32-point-group registry contract, then replace the bundled label map through the existing resolver boundary.
 - Application-layer stacking tools: consume JSON reports only after the schema is accepted; do not couple to internal modules.
 

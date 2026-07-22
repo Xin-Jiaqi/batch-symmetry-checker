@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/Xin-Jiaqi/batch-symmetry-checker/actions/workflows/tests.yml/badge.svg)](https://github.com/Xin-Jiaqi/batch-symmetry-checker/actions/workflows/tests.yml)
 
-Batch Symmetry Checker creates versioned, machine-readable symmetry reports for periodic crystal structures. It reads CIF, POSCAR, CONTCAR, and `.vasp` files with pymatgen, evaluates each structure over one or more spglib tolerances, and records space group, point group, crystal system, lattice metric, source hash, and structured failures.
+Batch Symmetry Checker creates versioned, machine-readable symmetry reports for periodic crystal structures. It reads CIF, POSCAR, CONTCAR, and `.vasp` files through pymatgen or the validated `materials-structure-core` input contract, evaluates each structure over one or more spglib tolerances, and records space group, point group, crystal system, lattice metric, source hash, and structured failures.
 
 The project is an **alpha research tool**. It supports reproducible screening and quality control; it does not replace crystallographic validation for publication. In particular, a three-dimensional space-group result for a slab with vacuum must be interpreted in its physical context.
 
@@ -13,7 +13,7 @@ The project is an **alpha research tool**. It supports reproducible screening an
 - Report schema `1.0.0` separates successful records from file- and tolerance-level errors.
 - Source SHA-256, dependency versions, units, and run configuration are recorded.
 - Reports use relative source paths and a logical input root by default, avoiding accidental disclosure of local usernames and project directories.
-- The Python API accepts loader and point-group resolver adapters without depending on unfinished sibling repositories.
+- The Python API and CLI can use the released `materials-structure-core` 0.0.2 contract while retaining the original pymatgen loader for compatibility.
 - Partial batches keep valid results and return a nonzero exit status.
 
 ## Installation
@@ -32,11 +32,35 @@ python -m pip install -e '.[excel]'
 
 The project is available under the [BSD 3-Clause License](LICENSE).
 
+The optional core loader currently uses the tagged GitHub release because the
+core package is not yet distributed through PyPI:
+
+```bash
+python -m pip install \
+  'materials-structure-core[io] @ git+https://github.com/Xin-Jiaqi/materials-structure-core.git@v0.0.2'
+```
+
 ## Command line
 
 ```bash
 batch-symmetry-checker --input ./structures --recursive
 ```
+
+To make the shared structure contract the explicit parsing boundary:
+
+```bash
+batch-symmetry-checker \
+  --input ./structures \
+  --structure-loader core
+```
+
+`pymatgen` remains the default loader in release 0.2. Selecting `core` requires
+`materials-structure-core>=0.0.2`; it validates the input through its
+`StructureRecord` contract before conversion to pymatgen for symmetry analysis.
+The conversion preserves lattice, species, site order, and fractional
+coordinates. A record with a non-periodic axis is rejected rather than silently
+promoted to a three-dimensionally periodic structure. Selective-dynamics flags
+are validated by the core reader but do not affect symmetry classification.
 
 This writes `symmetry_report.json`. A custom tolerance scan and output can be selected explicitly:
 
@@ -73,7 +97,11 @@ The former `python batch_symmetry_checker.py ...` source-checkout launcher remai
 
 ```python
 from pathlib import Path
-from batch_symmetry_checker import AnalysisConfig, analyze_directory
+from batch_symmetry_checker import (
+    AnalysisConfig,
+    MaterialsStructureCoreLoader,
+    analyze_directory,
+)
 
 report = analyze_directory(
     AnalysisConfig(
@@ -81,6 +109,7 @@ report = analyze_directory(
         tolerances=(1e-3, 1e-2),
         recursive=True,
     ),
+    loader=MaterialsStructureCoreLoader(),
     producer_version="my-workflow",
 )
 
@@ -126,7 +155,7 @@ For research use, cite the exact version using [`CITATION.cff`](CITATION.cff). A
 
 Implemented: deterministic file discovery, one-time parsing, multi-tolerance symmetry analysis, 32 crystallographic point-group labels, structured JSON/CSV/Excel reports, source hashing, typed API, tests, packaging, and CI.
 
-Not implemented: magnetic symmetry, layer-group classification, automatic structural repair, canonical structure identity, or direct `materials-structure-core`/`group-theory-operations-toolkit` imports. Those integrations remain gated on stable contracts in the sibling projects. See [ROADMAP.md](ROADMAP.md).
+Not implemented: magnetic symmetry, layer-group classification, automatic structural repair, canonical structure identity, or a direct `group-theory-operations-toolkit` registry import. See [ROADMAP.md](ROADMAP.md).
 
 ## Author and license
 
