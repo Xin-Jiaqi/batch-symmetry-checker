@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 
 from . import __version__
+from .adapters import MaterialsStructureCoreLoader, PymatgenStructureLoader
 from .analysis import TOLERANCE_PRESETS, AnalysisConfig, analyze_directory
 from .models import REPORT_SCHEMA_VERSION
 from .outputs import write_report
@@ -27,6 +28,12 @@ def build_parser() -> argparse.ArgumentParser:
         version=f"%(prog)s {__version__} (schema {REPORT_SCHEMA_VERSION})",
     )
     parser.add_argument("--input", default=".", help="Input directory")
+    parser.add_argument(
+        "--structure-loader",
+        choices=("pymatgen", "core"),
+        default="pymatgen",
+        help="Input contract: pymatgen (default) or materials-structure-core",
+    )
     parser.add_argument(
         "--output", default="symmetry_report.json", help="Output .json, .csv, or .xlsx path"
     )
@@ -74,8 +81,14 @@ def main(argv: list[str] | None = None) -> int:
         recursive=args.recursive,
     )
     try:
+        loader = (
+            MaterialsStructureCoreLoader()
+            if args.structure_loader == "core"
+            else PymatgenStructureLoader()
+        )
         report = analyze_directory(
             config,
+            loader=loader,
             producer_version=__version__,
             report_input_root=(
                 str(config.input_dir.resolve()) if args.include_absolute_root else "."

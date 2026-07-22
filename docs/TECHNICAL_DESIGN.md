@@ -19,7 +19,11 @@ The metric-only classifier checks lengths and angles independently. Trigonal sym
 
 ## Extension boundaries
 
-`StructureLoader` is a protocol whose `load(Path)` method returns a pymatgen `Structure`. The default implementation calls `Structure.from_file`. A future `materials-structure-core` adapter can implement this protocol after that project has stable POSCAR/CIF conversion and provenance contracts. The core package is deliberately not imported today.
+`StructureLoader` is a protocol whose `load(Path)` method returns a pymatgen `Structure`. The default implementation calls `Structure.from_file` and preserves release-0.2 behavior.
+
+`MaterialsStructureCoreLoader` is the maintained optional adapter for `materials-structure-core>=0.0.2`. The batch engine snapshots each source once; the adapter sends those exact bytes through the core POSCAR/CIF reader, verifies the returned source hash, then converts the validated `StructureRecord` to an unchanged pymatgen lattice/species/fractional-coordinate representation for `SpacegroupAnalyzer`. Temporary parser paths are removed from public errors and deleted after every load.
+
+The conversion refuses a `StructureRecord` with a non-periodic axis because pymatgen `Structure` and the present spglib workflow are three-dimensionally periodic. Selective-dynamics flags are intentionally not copied to pymatgen site properties: the core reader has already validated them, and allowed ionic motion is not an input to crystallographic symmetry classification. The adapter is imported lazily, so users who keep the default pymatgen boundary do not acquire ASE or core-package dependencies.
 
 The point-group resolver is an injected callable from Hermann–Mauguin to Schönflies notation. The bundled 32-group map is the default. A future `group-theory-operations-toolkit` registry can be injected after its point-group schema is stable; this package does not guess that unpublished interface.
 
@@ -33,7 +37,7 @@ Output paths are protected against accidental replacement. The CLI requires `--f
 
 ## Security and reproducibility
 
-Inputs are read as crystal structure data through pymatgen. The project does not execute input content. Reports include the exact source-byte SHA-256 and backend versions. The hash is a provenance reference, not a canonical structure identity: whitespace changes alter it, while physically equivalent structures may have different hashes.
+Inputs are read as crystal structure data through the selected loader. The project does not execute input content. Reports include the exact source-byte SHA-256 and symmetry-backend versions. The hash is a provenance reference, not a canonical structure identity: whitespace changes alter it, while physically equivalent structures may have different hashes. When the optional core input boundary is used, workflows should also pin the core release as shown in the installation instructions; input-loader identity is selected by the invocation and is not yet a report-schema field.
 
 ## Upstream references
 

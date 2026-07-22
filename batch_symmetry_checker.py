@@ -14,10 +14,16 @@ __path__ = [str(Path(__file__).resolve().parent / "src" / "batch_symmetry_checke
 __package__ = __name__
 if __spec__ is not None:
     __spec__.submodule_search_locations = __path__
+from .adapters import (  # noqa: E402,F401
+    MaterialsStructureCoreLoader,
+    MaterialsStructureCoreUnavailableError,
+    PymatgenStructureLoader,
+    StructureLoader,
+    structure_record_to_pymatgen,
+)
 from .analysis import (  # noqa: E402,F401
     POINT_GROUP_HM_TO_SCHOENFLIES,
     AnalysisConfig,
-    PymatgenStructureLoader,
     analyze_directory,
     analyze_one_structure,
     analyze_structure,
