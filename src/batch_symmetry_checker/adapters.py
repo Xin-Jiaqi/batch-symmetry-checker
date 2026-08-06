@@ -6,6 +6,7 @@ import hashlib
 from collections.abc import Callable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Literal
 from typing import Any, Protocol
 
 from pymatgen.core import Structure
@@ -26,7 +27,9 @@ class PymatgenStructureLoader:
     def load_bytes(self, payload: bytes, path: Path) -> Structure:
         """Parse the same immutable byte snapshot used for provenance."""
 
-        format_name = "cif" if path.suffix.lower() == ".cif" else "poscar"
+        format_name: Literal["cif", "poscar"] = (
+            "cif" if path.suffix.lower() == ".cif" else "poscar"
+        )
         return Structure.from_str(payload.decode("utf-8"), fmt=format_name)
 
 
@@ -67,7 +70,7 @@ class MaterialsStructureCoreLoader:
 
     def __init__(self) -> None:
         try:
-            from materials_structure_core import __version__ as core_version
+            from materials_structure_core import __version__ as core_version  # type: ignore[import-not-found]
             from materials_structure_core import read_structure
         except ImportError as exc:
             raise MaterialsStructureCoreUnavailableError(
