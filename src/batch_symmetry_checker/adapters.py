@@ -6,8 +6,7 @@ import hashlib
 from collections.abc import Callable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Literal
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pymatgen.core import Structure
 
@@ -70,7 +69,7 @@ class MaterialsStructureCoreLoader:
 
     def __init__(self) -> None:
         try:
-            from materials_structure_core import __version__ as core_version  # type: ignore[import-not-found]
+            from materials_structure_core import __version__ as core_version
             from materials_structure_core import read_structure
         except ImportError as exc:
             raise MaterialsStructureCoreUnavailableError(
